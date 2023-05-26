@@ -144,6 +144,9 @@ public class BitcaskOperations implements IBitcask{
         });
 
         //process hint files and data files that has no hint file (not compressed and not current file)
+        if(oldFiles.length<2 || (oldFiles.length==2 && oldFiles[1].getName().contains("hint"))){
+            return;
+        }
         for(int i=0; i<oldFiles.length; i++){
             if(i!=oldFiles.length-1 && (oldFiles[i].getName().split("\\.")[0].equals(oldFiles[i+1].getName().split("\\.")[0]))){
                 i = i+1;
