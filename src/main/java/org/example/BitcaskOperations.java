@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 
-public class BitcaskOperations {
+public class BitcaskOperations implements IBitcask{
     HashMap<String, valueDirectory> memtable;
     String currentFile = "current.data";
     String directoryName = "BitcaskDisk";
@@ -21,6 +21,7 @@ public class BitcaskOperations {
     }
 
     //add record using station key and message
+    @Override
     public void addRecord(String key, String message){
         Record record = new Record(key,message);
         int fileSize = 0;
@@ -38,7 +39,7 @@ public class BitcaskOperations {
     }
 
     //if current file filled, rename it with current time and create new current file to write to
-    public void renameAndCreateCurrent(){
+    private void renameAndCreateCurrent(){
         File oldFile = new File(directoryName+File.separator+currentFile);
         File newFile = new File(directoryName+File.separator+System.currentTimeMillis()+".data");
         oldFile.renameTo(newFile);
@@ -50,12 +51,13 @@ public class BitcaskOperations {
     }
 
     //read record of memtable key from current file
+    @Override
     public String readCurrntRecords(String key){
         return readRecord(key,true);
     }
 
     //read record of memtable key from compressed file
-    public String readCompressedRecord(String key){
+    private String readCompressedRecord(String key){
         return readRecord(key,false);
     }
 
@@ -89,6 +91,7 @@ public class BitcaskOperations {
     }
 
     //Compaction
+    @Override
     public void compression(){
         mergeTable = new HashMap<>();
         File dir = new File(directoryName);
@@ -184,7 +187,7 @@ public class BitcaskOperations {
 
     //has key size, start, record size, key
     //what is in valueDirectory
-    public void processHintFile(File fileName){
+    private void processHintFile(File fileName){
         byte[] readIn = new byte[(int)fileName.length()];
         try {
             FileInputStream toRead = new FileInputStream(fileName);
@@ -246,6 +249,7 @@ public class BitcaskOperations {
     }
 
     //rebuild memtable when first open program
+    @Override
     public void rebuild(){
         memtable = new HashMap<>();
         mergeTable = new HashMap<>();
