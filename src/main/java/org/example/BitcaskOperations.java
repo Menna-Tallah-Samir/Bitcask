@@ -7,15 +7,35 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class BitcaskOperations implements IBitcask{
     HashMap<String, valueDirectory> memtable;
     String currentFile = "current.data";
-    String directoryName = "BitcaskDisk";
+    String directoryName;
     HashMap<String, valueDirectory> mergeTable;
     int maxSize = 2000;
 
-    public BitcaskOperations() {
+    public BitcaskOperations(String directoryPath) {
+        this.directoryName = directoryPath;
+        if(Files.exists(Paths.get(directoryName))){
+            if(!Files.exists(Paths.get(directoryPath+File.separator+currentFile))){
+                try {
+                    Files.createFile(Paths.get(directoryName+File.separator+currentFile));
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }else{
+            try {
+                Files.createDirectory(Paths.get(directoryName));
+                Files.createFile(Paths.get(directoryName+File.separator+currentFile));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         this.memtable = new HashMap<>();
         this.mergeTable = new HashMap<>();
     }
@@ -42,6 +62,9 @@ public class BitcaskOperations implements IBitcask{
     private void renameAndCreateCurrent(){
         File oldFile = new File(directoryName+File.separator+currentFile);
         File newFile = new File(directoryName+File.separator+System.currentTimeMillis()+".data");
+        while(Files.exists(newFile.toPath())){
+            newFile = new File(directoryName+File.separator+System.currentTimeMillis()+".data");
+        }
         oldFile.renameTo(newFile);
         try {
           Files.createFile(Paths.get(directoryName+File.separator+currentFile));
@@ -90,6 +113,14 @@ public class BitcaskOperations implements IBitcask{
         }
     }
 
+    @Override
+    public void scheduleCompression(long interval){
+        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+        scheduledExecutorService.scheduleAtFixedRate(()->{
+           compression();
+        },interval,interval, TimeUnit.SECONDS);
+    }
+
     //Compaction
     @Override
     public void compression(){
@@ -127,6 +158,9 @@ public class BitcaskOperations implements IBitcask{
         //create new compressed file to write record to
         String compressName = System.currentTimeMillis()+".data";
         try {
+            while(Files.exists(Paths.get(directoryName+File.separator+compressName))){
+                compressName = System.currentTimeMillis()+".data";
+            }
             Files.createFile(Paths.get(directoryName+File.separator+compressName));
         } catch (IOException e) {
             throw new RuntimeException(e);
